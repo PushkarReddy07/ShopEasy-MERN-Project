@@ -46,7 +46,7 @@ export const getAllProducts = handleAsyncError(async ( req , res , next ) => {
 
 export const updateProduct = handleAsyncError(async ( req , res , next) => {
     const product = await Product.findByIdAndUpdate( req.params.id , req.body ,{
-        new : true,
+        returnDocument: 'after',
         runValidators:true
     } )
     if(!product){
@@ -79,3 +79,18 @@ export const getSingleProduct =  handleAsyncError(async ( req , res , next) => {
         product:product
     })
 })
+// creating and Updating a review(access level - User and admin)
+export const createReviewForProduct =  handleAsyncError(async ( req , res , next) => {
+    
+})
+
+//Admin getting all products 
+export const getAdminProducts = handleAsyncError(async(req,res,next)=> {
+    const products = await Product.find();
+    res.status(200).json({
+        success:true,
+        products
+    })
+})
+
+

@@ -4,6 +4,7 @@ import HandleError from "../utils/handleError.js";
 import { sendToken } from "../utils/jwtToken.js";
 import { sendEmail } from "../utils/sendemail.js";
 import crypto from 'crypto'
+import bcryptjs from "bcryptjs";
 
 export const registerUser = handleAsyncError(async(req , res , next) => {
     const {name,email,password} = req.body;
@@ -60,7 +61,7 @@ export const requestPasswordReset = handleAsyncError(async(req , res , next) => 
         // console.log(resetToken);
         await user.save({validateBeforeSave:false})
     }catch(err){
-        console.log(err.message)
+        //console.log(err.message)
         return next(new HandleError("Could not save reset token, Please try again!" ,500))
     }
     const resetPasswordURL = `http://localhost/api/v1/reset/${resetToken}`;
@@ -74,7 +75,7 @@ export const requestPasswordReset = handleAsyncError(async(req , res , next) => 
         })
         res.status(200).json({
             success:true,
-            message:`email is successfully sent to ${user.email}`
+            message:`email is successfully sent to ${user.email} if it exists!!`
         })
     }catch(error){
         user.resetPasswordToken = undefined;
@@ -103,3 +104,106 @@ export const resetPassword = handleAsyncError(async(req,res,next) => {
     await user.save()
     sendToken(user,200,res);
 })
+
+//get user details
+export const getUsersDetails=handleAsyncError(async (req,res ,next) => {
+    // const user = await User.findById(req.user.id);
+    res.status(200).json({
+        success:true ,
+        user : req.user
+    })
+
+})
+
+//Update Password
+export const updatePassword = handleAsyncError(async(req,res,next) => {
+    const {oldPassword,newPassword,confirmPassword} = req.body;
+    const user = await User.findById(req.user.id).select('+password');
+    const checkPasswordMatch = await user.verifyPassword(oldPassword);
+    if(!checkPasswordMatch){
+        return next(new HandleError("Old Password is incorrect, Please try again Later !!" , 400))
+    }
+    if(newPassword !== confirmPassword){
+       return next(new HandleError("Password's doesn't match!!",400));
+    }
+    user.password = newPassword;
+    await user.save()
+    sendToken(user,200,res);
+})
+
+//Updating userProfile
+export const updateProfile = handleAsyncError(async(req,res,next) => {
+    const {name,email} = req.body
+    const UpdateUserDetails = {
+        name,
+        email
+    }
+    const user = await User.findByIdAndUpdate(req.user.id,UpdateUserDetails,{
+        returnDocument: 'after',
+        runValidators:true
+    })
+    res.status(200).json({
+        success:true,
+        message:"Profile Updated Successfully",
+        user
+    })
+
+})
+
+//Admin - Gatting all USers List
+export const getUsersList = handleAsyncError(async(req,res,next) => {
+    const users = await User.find();
+    res.status(200).json({
+        success:true,
+        users
+    })
+})
+
+//Admin accessing single user data
+export const getSingleUser = handleAsyncError(async(req,res,next) => {
+    const user = await User.findById(req.params.id);
+    if(!user){
+        return next(new HandleError(`User doesn't exist with this ${req.params.id}`,400))
+    }
+    res.status(200).json({
+        success:true,
+        user
+    })
+})
+
+//Admin changing User role
+export const updateUserRole = handleAsyncError(async(req,res,next) => {
+    const {role} = req.body;
+    const newUserData = {
+        role
+    }
+    if(req.user.id === req.params.id){
+        return next(new HandleError('You cannot change your own role'),400)
+    }
+    const user = await User.findByIdAndUpdate(req.params.id,newUserData , {
+        returnDocument: "after",
+        runValidators:true
+    })
+    if(!user){
+        return next(new HandleError(`User doesn't exist`,400))
+    }
+    res.status(200).json({
+        success:true,
+        user
+    })
+})
+
+//Delete User Profile
+export const deleteUser = handleAsyncError( async(req,res,next) => {
+    const user = await User.findById(req.params.id);
+    if(!user){
+        return next(new HandleError("User doesn't exist" , 400));
+    }
+    await User.findByIdAndDelete(req.params.id)
+    res.status(200).json({
+        success:true,
+        message:"User Deleted Successfully"
+    })
+})
+
+//
