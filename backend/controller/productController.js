@@ -81,8 +81,69 @@ export const getSingleProduct =  handleAsyncError(async ( req , res , next) => {
 })
 // creating and Updating a review(access level - User and admin)
 export const createReviewForProduct =  handleAsyncError(async ( req , res , next) => {
-    
+    const {rating , comment , productId} = req.body
+    const review = {
+        user:req.user._id,
+        name:req.user.name,
+        rating:Number(rating),
+        comment
+    }
+    const product = await Product.findById(productId);
+    //console.log(product) 
+    //console.log(req.user)
+    //console.log(review.user)
+    const reviewExist = product.reviews.find(review => review.user.toString() === req.user.id.toString())
+    if(reviewExist){
+        product.reviews.forEach(review => {
+            if(review.user.toString() === req.user.id){
+                review.rating = rating,
+                review.comment = comment
+            }
+        })
+    }else{
+        product.reviews.push(review)
+    }
+    product.numOfReviews = product.reviews.length
+    let sumOfRatings = 0;
+    product.reviews.forEach(review => {
+        sumOfRatings += review.rating;
+    })
+    product.ratings  = (product.reviews.length > 0) ? sumOfRatings/(product.reviews.length) : 0
+    await product.save({validateBeforeSave:false})
+    res.status(200).json({
+        success:true,
+        product
+    })
 })
+//Getting Reviews
+export const getProductReviews = handleAsyncError(async(req,res,next) => {
+    const product = await Product.findById(req.query.id);
+    if(!product){
+        return next(new HandleError("No Product exist with this id" , 400));
+    }
+    res.status(200).json({
+        success:true,
+        reviews: product.reviews
+    })
+
+})
+//Deleting Reviews
+export const deleteReview = handleAsyncError(async(req,res,next) => {
+    const product = await Product.findById(req.query.productId);
+    if(!product){
+        return next(new HandleError("Product doesn't exist" , 400))
+    }
+    const reviews = product.reviews.filter(review=>review._id.toString() !== req.query.id.toString())
+    product.reviews = reviews
+    let sumOfRatings = 0;
+    product.reviews.forEach(review => {
+        sumOfRatings += review.rating;
+    })
+    product.ratings  = (product.reviews.length > 0) ? sumOfRatings/(product.reviews.length) : 0
+    product.numOfReviews = product.reviews.length
+    await product.save({validateBeforeSave:false})
+})
+
 
 //Admin getting all products 
 export const getAdminProducts = handleAsyncError(async(req,res,next)=> {

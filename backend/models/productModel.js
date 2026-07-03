@@ -45,6 +45,7 @@ const productSchema = new mongoose.Schema({
         required:[true,"Please Enter Product Stock"],
         maxLength:[5,"Price cannot exceed 5 digits"],
         default:1,
+        
     },
     numOfReviews:{
         type: Number,
@@ -52,6 +53,11 @@ const productSchema = new mongoose.Schema({
     },
     reviews:[
         {
+            user:{
+                type:mongoose.Schema.ObjectId,
+                ref:'User',
+                required:true
+            },
             name : {
                 type:String,
                 required:true,

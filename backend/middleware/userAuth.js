@@ -11,7 +11,6 @@ export const verifyUserAuth = handleAsyncError( async(req ,res , next ) => {
         return next(new HandleError(`Authentication is missing!,Please login to access resource` , 401))
     }
     const decodeData = jwt.verify(token , process.env.JWT_SECRET_KEY)
-    // console.log(decodeData);
     req.user = await User.findById(decodeData.id);
     next();
 })
